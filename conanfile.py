@@ -26,7 +26,7 @@ class LibmikmodConan(ConanFile):
         download("https://sourceforge.net/projects/mikmod/files/{0}/{1}/{2}/download".format(self.name, self.version, zip_name), zip_name)
         unzip(zip_name)
         os.unlink(zip_name)
-        replace_in_file("%s/CMakeLists.txt", 'PROJECT(libmikmod C)', '''PROJECT(libmikmod C)
+        replace_in_file("%s/CMakeLists.txt" % self.folder, 'PROJECT(libmikmod C)', '''PROJECT(libmikmod C)
 include(../conanbuildinfo.cmake)
 conan_basic_setup()
 ''')
@@ -35,7 +35,8 @@ conan_basic_setup()
         cmake = CMake(self)
         defs = {
             'CMAKE_INSTALL_PREFIX': os.path.join(self.conanfile_directory, 'install'),
-            'CMAKE_POSITION_INDEPENDENT_CODE': self.options.fPIC
+            'CMAKE_POSITION_INDEPENDENT_CODE': self.options.fPIC,
+            'ENABLE_DOC': False
         }
         src = os.path.join(self.conanfile_directory, self.folder)
         cmake.configure(build_dir='build', source_dir=src, defs=defs)
