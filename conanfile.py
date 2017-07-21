@@ -5,7 +5,7 @@ import os
 class LibmikmodConan(ConanFile):
     name = "libmikmod"
     version = "3.3.11.1"
-    description = ""
+    description = "Mikmod is a module player and library supporting many formats, including mod, s3m, it, and xm."
     folder = "libmikmod-%s" % version
     settings = "os", "arch", "compiler", "build_type"
     options = {
