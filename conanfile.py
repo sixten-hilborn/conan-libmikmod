@@ -1,5 +1,5 @@
 from conans import ConanFile, ConfigureEnvironment, CMake
-from conans.tools import download, unzip, replace_in_file
+from conans.tools import download, unzip, patch
 import os
 
 class LibmikmodConan(ConanFile):
@@ -17,6 +17,7 @@ class LibmikmodConan(ConanFile):
         'fPIC=True'
     )
     generators = "cmake"
+    exports = ["CMakeLists.txt.patch"]
     url = "https://github.com/sixten-hilborn/conan-libmikmod"
     license = "LGPL - http://www.gnu.org/copyleft/lesser.html"
 
@@ -26,16 +27,14 @@ class LibmikmodConan(ConanFile):
         download("https://sourceforge.net/projects/mikmod/files/{0}/{1}/{2}/download".format(self.name, self.version, zip_name), zip_name)
         unzip(zip_name)
         os.unlink(zip_name)
-        replace_in_file("%s/CMakeLists.txt" % self.folder, 'PROJECT(libmikmod C)', '''PROJECT(libmikmod C)
-include(../conanbuildinfo.cmake)
-conan_basic_setup()
-''')
+        patch(patch_file="CMakeLists.txt.patch", base_path=self.folder)
 
     def build(self):
         cmake = CMake(self)
         defs = {
             'CMAKE_INSTALL_PREFIX': os.path.join(self.conanfile_directory, 'install'),
             'CMAKE_POSITION_INDEPENDENT_CODE': self.options.fPIC,
+            'ENABLE_STATIC': not self.options.shared,
             'ENABLE_DOC': False
         }
         src = os.path.join(self.conanfile_directory, self.folder)
