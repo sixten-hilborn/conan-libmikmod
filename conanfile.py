@@ -1,12 +1,27 @@
-from conans import ConanFile, ConfigureEnvironment, CMake
-from conans.tools import download, unzip, patch
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from conans import ConanFile, CMake, tools
 import os
+
 
 class LibmikmodConan(ConanFile):
     name = "libmikmod"
     version = "3.3.11.1"
-    description = "Mikmod is a module player and library supporting many formats, including mod, s3m, it, and xm."
-    folder = "libmikmod-%s" % version
+    url = "https://github.com/sixten-hilborn/conan-libmikmod"
+    description = "Module player and library supporting many formats, including mod, s3m, it, and xm."
+    
+    # Indicates License type of the packaged library
+    license = "LGPL - http://www.gnu.org/copyleft/lesser.html"
+    
+    # Packages the license for the conanfile.py
+    exports = ["LICENSE.md"]
+    
+    # Remove following lines if the target lib does not use cmake.
+    exports_sources = ["CMakeLists.txt.patch"]
+    generators = "cmake" 
+    
+    # Options may need to change depending on the packaged library. 
     settings = "os", "arch", "compiler", "build_type"
     options = {
         "shared": [True, False],
@@ -16,42 +31,43 @@ class LibmikmodConan(ConanFile):
         'shared=True',
         'fPIC=True'
     )
-    generators = "cmake"
-    exports = ["CMakeLists.txt.patch"]
-    url = "https://github.com/sixten-hilborn/conan-libmikmod"
-    license = "LGPL - http://www.gnu.org/copyleft/lesser.html"
-
-
+    
+    # Custom attributes for Bincrafters recipe conventions
+    source_subfolder = "source_subfolder"
+    build_subfolder = "build_subfolder"
+    
     def source(self):
-        zip_name = "%s.tar.gz" % self.folder
-        download("https://sourceforge.net/projects/mikmod/files/{0}/{1}/{2}/download".format(self.name, self.version, zip_name), zip_name)
-        unzip(zip_name)
-        os.unlink(zip_name)
-        patch(patch_file="CMakeLists.txt.patch", base_path=self.folder)
+        extracted_dir = self.name + "-" + self.version
+        tools.get("https://sourceforge.net/projects/mikmod/files/{0}/{1}/{2}.tar.gz".format(self.name, self.version, extracted_dir))
 
+        #Rename to "source_subfolder" is a convention to simplify later steps
+        os.rename(extracted_dir, self.source_subfolder)
+
+        tools.patch(patch_file="CMakeLists.txt.patch", base_path=self.source_subfolder)
+
+        
     def build(self):
         cmake = CMake(self)
-        defs = {
-            'CMAKE_INSTALL_PREFIX': os.path.join(self.conanfile_directory, 'install'),
-            'CMAKE_POSITION_INDEPENDENT_CODE': self.options.fPIC,
-            'ENABLE_STATIC': not self.options.shared,
-            'ENABLE_DOC': False
-        }
-        src = os.path.join(self.conanfile_directory, self.folder)
-        cmake.configure(build_dir='build', source_dir=src, defs=defs)
-        cmake.build(target='install')
+        cmake.definitions['CMAKE_POSITION_INDEPENDENT_CODE'] = self.options.fPIC
+        cmake.definitions['ENABLE_STATIC'] = not self.options.shared
+        cmake.definitions['ENABLE_DOC'] = False
+        cmake.configure(build_folder=self.build_subfolder, source_folder=self.source_subfolder)
+        cmake.build()
+        cmake.install()
+
 
     def package(self):
-        """ Define your conan structure: headers, libs and data. After building your
-            project, this method is called to create a defined structure:
-        """
-        folder = 'install'
-        self.copy(pattern="*.h", dst="include", src=folder, keep_path=False)
-        self.copy(pattern="*.lib", dst="lib", src=folder, keep_path=False)
-        self.copy(pattern="*.dll*", dst="bin", src=folder, keep_path=False)
-        self.copy(pattern="*.a", dst="lib", src=folder, keep_path=False)
-        self.copy(pattern="*.so*", dst="lib", src=folder, keep_path=False)
-        self.copy(pattern="*.dylib*", dst="lib", src=folder, keep_path=False)
+        # If the CMakeLists.txt has a proper install method, the steps below may be redundant
+        # If so, you can replace all the steps below with the word "pass"
+        include_folder = os.path.join(self.source_subfolder, "include")
+        self.copy(pattern="LICENSE")
+        self.copy(pattern="*", dst="include", src=include_folder)
+        self.copy(pattern="*.dll", dst="bin", keep_path=False)
+        self.copy(pattern="*.lib", dst="lib", keep_path=False)
+        self.copy(pattern="*.a", dst="lib", keep_path=False)
+        self.copy(pattern="*.so*", dst="lib", keep_path=False)
+        self.copy(pattern="*.dylib", dst="lib", keep_path=False)
 
+        
     def package_info(self):
-        self.cpp_info.libs = ["mikmod"]
+        self.cpp_info.libs = tools.collect_libs(self)
