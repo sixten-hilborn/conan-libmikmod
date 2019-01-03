@@ -43,6 +43,8 @@ class LibmikmodConan(ConanFile):
         # Rename to "source_subfolder" is a convention to simplify later steps
         os.rename(extracted_dir, self._source_subfolder)
 
+        # Patch CMakeLists.txt to run `conan_basic_setup`, to avoid building shared lib when
+        # shared=False, and a fix to install .dlls correctly on Windows
         tools.patch(patch_file="CMakeLists.txt.patch", base_path=self._source_subfolder)
 
     def _configure_cmake(self):
