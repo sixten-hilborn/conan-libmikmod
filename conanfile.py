@@ -42,6 +42,8 @@ class LibmikmodConan(ConanFile):
         # Rename to "source_subfolder" is a convention to simplify later steps
         os.rename(extracted_dir, self._source_subfolder)
 
+        tools.patch(patch_file="CMakeLists.txt.patch", base_path=self._source_subfolder)
+
     def _configure_cmake(self):
         cmake = CMake(self)
         cmake.definitions['ENABLE_STATIC'] = not self.options.shared
